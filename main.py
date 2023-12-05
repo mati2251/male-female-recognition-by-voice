@@ -1,17 +1,18 @@
 import sys
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 import numpy as np
 import scipy.io.wavfile as wav
-# import warnings
-# warnings.filterwarnings("ignore")
-human = [85, 255]
-woman = [165, 255]
-men = [85, 180]
+import warnings
+
+warnings.filterwarnings("ignore")
+human = [85, 280]
+woman = [172.5, 280]
+men = [85, 172.5]
+border = [165, 180]
 
 
 def read_signal():
     file_path = sys.argv[1]
-    # file_path = "train/006_K.wav"
     F, signal = wav.read(file_path)
     if signal.ndim > 1:
         signal = signal.mean(axis=1)
@@ -19,7 +20,7 @@ def read_signal():
 
 
 def window_signal(signal):
-    return signal.copy() * np.hamming(len(signal))
+    return signal.copy() * np.kaiser(len(signal), 50)
 
 
 def get_spectrum(signal):
@@ -39,41 +40,44 @@ def resample_signal(F, signal, new_F):
     return new_signal
 
 
-fig, axs = plt.subplots(4, 1, figsize=(10, 10))
-current_plt_index = 0
+def cut_non_human(freqs, spectrum):
+    spectrum_copy = spectrum.copy()
+    for i in range(len(freqs)):
+        if freqs[i] < human[0] or freqs[i] > human[1]:
+            spectrum_copy[i] = 0
+    return spectrum_copy
 
 
-def draw_spectrum(freqs, spectrum):
-    global current_plt_index
-    axs[current_plt_index].plot(freqs, spectrum)
-    axs[current_plt_index].set_xlabel("Częstotliwość [Hz]")
-    axs[current_plt_index].set_xlim([0.01, 23000])
-    axs[current_plt_index].set_xscale("log")
-    current_plt_index += 1
+# fig, axs = plt.subplots(5, 1, figsize=(10, 10))
+# current_plt_index = 0
 
 
+# def draw_spectrum(freqs, spectrum):
+#     global current_plt_index
+#     axs[current_plt_index].plot(freqs, spectrum)
+#     axs[current_plt_index].set_xlabel("Częstotliwość [Hz]")
+#     axs[current_plt_index].set_xlim([0.01, 23000])
+#     axs[current_plt_index].set_xscale("log")
+#     current_plt_index += 1
 
+
+def hps(spectrum, freqs, iterations):
+    final_spectrum = spectrum.copy()
+    for i in range(2, iterations):
+        new_F = F / i
+        resample = resample_signal(F, spectrum, new_F)
+        final_spectrum[: len(resample)] *= resample
+    final_spectrum = cut_non_human(freqs, final_spectrum)
+    return freqs[np.argmax(final_spectrum)]
 
 
 F, signal = read_signal()
-draw_spectrum(range(len(signal)), signal)
 signal = window_signal(signal)
-draw_spectrum(range(len(signal)), signal)
 spectrum = get_spectrum(signal)
 freqs = get_freqs(F, len(signal))
-draw_spectrum(freqs, spectrum)
-
-final_spectrum = spectrum.copy()
-for i in range(2, 5):
-    new_F = F / i
-    resample = resample_signal(F, spectrum, new_F)
-    final_spectrum[:len(resample)] *=  resample
-draw_spectrum(freqs[:len(final_spectrum)], final_spectrum)
-tone = freqs[np.argmax(final_spectrum)]
-if tone > human[0] and tone < human[1]:
-    if tone > woman[0] and tone < woman[1]:
-        print("K")
-    elif tone > men[0] and tone < men[1]:
-        print("M")
+tone = hps(spectrum, freqs, 5)
+if tone > men[0] and tone < men[1]:
+    print("M")
+else:
+    print("K")
 print(tone)
-plt.savefig("spectrum.png")

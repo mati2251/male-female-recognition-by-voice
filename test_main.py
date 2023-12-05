@@ -13,9 +13,11 @@ for file_path in file_paths:
     if 'M' in file_path:
         if 'M' in str(x):
             test_pass += 1
+        else: 
+            print(str(x) + " " + file_path)
     if 'K' in file_path:
         if 'K' in str(x):
             test_pass += 1
-    print(str(x) + " " + file_path)
-    
+        else: 
+            print(str(x) + " " + file_path)    
 print("Testy zakończone. Wynik: " + str(test_pass) + "/" + str(test_number))
