@@ -80,4 +80,3 @@ if tone > men[0] and tone < men[1]:
     print("M")
 else:
     print("K")
-print(tone)

@@ -1,5 +1,4 @@
 import glob
-import os
 import subprocess
 
 file_paths = sorted(glob.glob("train/*"))
